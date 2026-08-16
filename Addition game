@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>एडिशन (जोड़) गेम</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: linear-gradient(135deg, #74b9ff, #a29bfe); height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
+        
+        .header { background: rgba(255, 255, 255, 0.9); width: 100%; padding: 15px; display: flex; justify-content: space-around; font-weight: bold; font-size: 18px; }
+        .question-box { background: #fff; padding: 15px 30px; border-radius: 50px; font-size: 32px; font-weight: bold; color: #0984e3; margin-top: 20px; border: 4px solid #74b9ff; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .game-area { position: relative; width: 100%; flex-grow: 1; }
+        
+        .balloon { position: absolute; bottom: -80px; width: 75px; height: 95px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 20px; cursor: pointer; animation: floatUp linear forwards; box-shadow: inset -5px -5px 10px rgba(0,0,0,0.3); }
+        @keyframes floatUp { to { bottom: 105vh; } }
+
+        .btn-back { position: absolute; bottom: 15px; padding: 10px 25px; background: #2d3436; color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 16px; z-index: 100; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div>स्कोर: <span id="score">0</span></div>
+        <div>लेवल: <span id="level">1</span></div>
+    </div>
+
+    <div id="questionBox" class="question-box">? + ? = ?</div>
+    <div id="gameArea" class="game-area"></div>
+
+    <button class="btn-back" onclick="window.location.href='index.html'">मुख्य मेनू पर जाएं</button>
+
+    <script>
+        let score = 0;
+        let level = 1;
+        let currentAns;
+
+        function generateNewQuestion() {
+            // लेवल के हिसाब से नंबर की कठिनता बढ़ाना
+            let min = level === 1 ? 1 : 10;
+            let max = level === 1 ? 9 : 99;
+            
+            let n1 = Math.floor(Math.random() * (max - min + 1)) + min;
+            let n2 = Math.floor(Math.random() * (max - min + 1)) + min;
+            
+            currentAns = n1 + n2;
+            document.getElementById('questionBox').innerText = `${n1} + ${n2} = ?`;
+            createBalloons();
+        }
+
+        function createBalloons() {
+            const area = document.getElementById('gameArea');
+            area.innerHTML = '';
+            
+            // सही उत्तर के साथ दो गलत विकल्प बनाना
+            let options = [currentAns, currentAns + 3, currentAns - 2];
+            options.sort(() => Math.random() - 0.5);
+            
+            options.forEach((ans, i) => {
+                let b = document.createElement('div');
+                b.className = 'balloon';
+                b.style.left = (20 + i * 30) + '%';
+                b.style.backgroundColor = ['#e84118', '#0097e6', '#44bd32'][i];
+                b.style.animationDuration = (7 - Math.min(level, 4)) + 's'; // जैसे-जैसे लेवल बढ़ेगा, गुब्बारे तेज़ चलेंगे
+                b.innerText = ans;
+                
+                b.onclick = () => {
+                    if (ans == currentAns) {
+                        score += 10;
+                        document.getElementById('score').innerText = score;
+                        
+                        // हर 50 स्कोर पर लेवल बढ़ाना
+                        if (score % 50 === 0) {
+                            level++;
+                            document.getElementById('level').innerText = level;
+                        }
+                        
+                        generateNewQuestion();
+                    } else {
+                        alert("गलत जवाब! फिर से कोशिश करें।");
+                    }
+                };
+                area.appendChild(b);
+            });
+        }
+
+        // पेज खुलते ही गेम शुरू हो जाएगा
+        window.onload = generateNewQuestion;
+    </script>
+</body>
+</html>
