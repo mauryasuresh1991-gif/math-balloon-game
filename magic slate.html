@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Kiddoo: AI Magic Slate! 📝✨</title>
+    <style>
+        /* सख्त फ्लेक्सबॉक्स ढांचा - ओवरफ्लो को जड़ से खत्म करने के लिए */
+        #gameInsideContainer {
+            background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 100%) !important;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            padding: 6px;
+            box-sizing: border-box;
+            gap: 6px;
+            justify-content: space-between;
+            overflow: hidden; /* स्क्रीन के बाहर कुछ नहीं जा सकता */
+        }
+
+        /* १. टॉप पैटर्न सेलेक्टर पट्टी */
+        .pattern-selector-bar {
+            display: flex;
+            justify-content: space-around;
+            background: #ffffff;
+            padding: 4px;
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            gap: 4px;
+            height: 40px;
+            align-items: center;
+            flex-shrink: 0; /* किसी भी हाल में साइज छोटा नहीं होगा */
+        }
+        .pattern-btn {
+            flex: 1;
+            background: #e2e8f0;
+            border: none;
+            padding: 6px 2px;
+            font-size: 11px;
+            font-weight: bold;
+            color: #334155;
+            border-radius: 8px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .pattern-btn.active {
+            background: #4f46e5;
+            color: white;
+        }
+
+        /* २. मुख्य ड्राइंग स्लेट - प्रतिशत आधारित सख्त सीमा */
+        .slate-container {
+            flex: 1;
+            min-height: 0; /* फ्लेक्सबॉक्स के अंदर क्रैश रोकने के लिए अनिवार्य */
+            height: calc(100% - 144px); /* कलर और टूल पट्टी की फिक्स जगह छोड़कर बाकी पूरा हिस्सा */
+            background: #ffffff;
+            border-radius: 18px;
+            border: 4px solid #4f46e5;
+            box-shadow: inset 0 4px 10px rgba(0,0,0,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0; left: 0;
+            touch-action: none;
+        }
+
+        /* लाइव स्कोरबोर्ड बैनर */
+        #slateScoreBoard {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(79, 70, 229, 0.95);
+            color: white;
+            font-weight: bold;
+            padding: 5px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            pointer-events: none;
+            z-index: 10;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            display: none;
+        }
+
+        /* ३. कलर सेलेक्टर पट्टी */
+        .color-selector-bar {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #ffffff;
+            padding: 4px;
+            border-radius: 12px;
+            gap: 16px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.04);
+            height: 34px;
+            flex-shrink: 0; /* साइज फिक्स लॉक */
+        }
+        .color-dot {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+        }
+        .color-dot.active {
+            border-color: #000000;
+            transform: scale(1.2);
+            box-shadow: 0 0 6px rgba(0,0,0,0.2);
+        }
+
+        /* ४. बॉटम टूलबॉक्स पट्टी - स्क्रीन पर हमेशा तैरती हुई दिखेगी */
+        .toolbar-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #ffffff;
+            padding: 4px 12px;
+            border-radius: 14px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+            height: 44px;
+            flex-shrink: 0; /* साइज फिक्स लॉक */
+            box-sizing: border-box;
+        }
+        .tool-btn {
+            background: #f1f5f9;
+            border: 2px solid #e2e8f0;
+            font-size: 16px;
+            padding: 4px 14px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+        .tool-btn.active {
+            background: #10b981;
+            border-color: #10b981;
+            color: white;
+        }
+        .btn-clear {
+            background: #ff4757;
+            color: white;
+            border: none;
+            font-size: 13px;
+            font-weight: bold;
+            padding: 4px 14px;
+            border-radius: 8px;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="pattern-selector-bar">
+        <button class="pattern-btn active" onclick="window.setSlatePattern('free', this)">Free Style 🎨</button>
+        <button class="pattern-btn" onclick="window.setSlatePattern('vertical', this)">Standing Lines</button>
+        <button class="pattern-btn" onclick="window.setSlatePattern('horizontal', this)">Sleeping Lines</button>
+        <button class="pattern-btn" onclick="window.setSlatePattern('slant', this)">Slanting Lines</button>
+    </div>
+
+    <div class="slate-container">
+        <div id="slateScoreBoard">Accuracy: 0%</div>
+        <canvas id="magicSlateCanvas"></canvas>
+    </div>
+
+    <div class="color-selector-bar">
+        <div class="color-dot active" style="background: #1e3a8a;" onclick="window.setSlateColor('#1e3a8a', this)"></div>
+        <div class="color-dot" style="background: #ef4444;" onclick="window.setSlateColor('#ef4444', this)"></div>
+        <div class="color-dot" style="background: #10b981;" onclick="window.setSlateColor('#10b981', this)"></div>
+        <div class="color-dot" style="background: #f59e0b;" onclick="window.setSlateColor('#f59e0b', this)"></div>
+        <div class="color-dot" style="background: #000000;" onclick="window.setSlateColor('#000000', this)"></div>
+    </div>
+
+    <div class="toolbar-bottom">
+        <button class="tool-btn active" id="tool-pencil" onclick="window.setSlateTool('pencil')">✏️</button>
+        <button class="tool-btn" id="tool-pen" onclick="window.setSlateTool('pen')">🖊️</button>
+        <button class="tool-btn" id="tool-eraser" onclick="window.setSlateTool('eraser')">🧼</button>
+        <button class="tool-btn btn-clear" onclick="window.clearEntireSlate()">🧹 Clear</button>
+    </div>
+
+    <script>
+        (function() {
+            const canvas = document.getElementById('magicSlateCanvas');
+            const ctx = canvas.getContext('2d');
+            const scoreBoard = document.getElementById('slateScoreBoard');
+
+            let isDrawing = false;
+            let currentTool = 'pencil'; 
+            let currentPattern = 'free'; 
+            let currentColor = '#1e3a8a';
+            let lastX = 0; let lastY = 0;
+            
+            let currentStrokePoints = []; 
+            let activeGuidedSegments = [];
+
+            function sendVoiceCommand(text) {
+                let courier = document.getElementById('native-voice-courier');
+                if (courier) {
+                    courier.setAttribute('data-command', text + "|" + Date.now());
+                }
+            }
+
+            function resizeCanvas() {
+                let tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width; tempCanvas.height = canvas.height;
+                let tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(canvas, 0, 0);
+
+                canvas.width = canvas.parentElement.clientWidth;
+                canvas.height = canvas.parentElement.clientHeight;
+                
+                drawPatternGuideBackground();
+                ctx.drawImage(tempCanvas, 0, 0, canvas.width, canvas.height);
+            }
+
+            function drawPatternGuideBackground() {
+                let w = canvas.width; let h = canvas.height;
+                ctx.clearRect(0, 0, w, h);
+                activeGuidedSegments = [];
+
+                if (currentPattern === 'free') {
+                    scoreBoard.style.display = 'none';
+                    return;
+                }
+
+                scoreBoard.style.display = 'block';
+                ctx.save();
+                ctx.beginPath();
+                ctx.strokeStyle = '#cbd5e1'; 
+                ctx.lineWidth = 5;
+                ctx.setLineDash([6, 10]); 
+                ctx.lineCap = 'round';
+
+                if (currentPattern === 'vertical') {
+                    let step = w / 5;
+                    for (let x = step; x < w; x += step) {
+                        let xStart = x, yStart = h * 0.08, xEnd = x, yEnd = h * 0.92;
+                        ctx.moveTo(xStart, yStart); ctx.lineTo(xEnd, yEnd);
+                        activeGuidedSegments.push({x1: xStart, y1: yStart, x2: xEnd, y2: yEnd});
+                    }
+                } else if (currentPattern === 'horizontal') {
+                    let step = h / 6;
+                    for (let y = step; y < h; y += step) {
+                        let xStart = w * 0.06, yStart = y, xEnd = w * 0.94, yEnd = y;
+                        ctx.moveTo(xStart, yStart); ctx.lineTo(xEnd, yEnd);
+                        activeGuidedSegments.push({x1: xStart, y1: yStart, x2: xEnd, y2: yEnd});
+                    }
+                } else if (currentPattern === 'slant') {
+                    for (let x = 30; x < w; x += 75) {
+                        let xStart = x, yStart = h * 0.15, xEnd = x + (h * 0.32), yEnd = h * 0.85;
+                        ctx.moveTo(xStart, yStart); ctx.lineTo(xEnd, yEnd);
+                        activeGuidedSegments.push({x1: xStart, y1: yStart, x2: xEnd, y2: yEnd});
+                    }
+                }
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            function getDistanceToSegment(p, a, b) {
+                let dx = b.x - a.x; let dy = b.y - a.y;
+                if (dx === 0 && dy === 0) return Math.hypot(p.x - a.x, p.y - a.y);
+                let t = ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy);
+                t = Math.max(0, Math.min(1, t));
+                return Math.hypot(p.x - (a.x + t * dx), p.y - (a.y + t * dy));
+            }
+
+            function checkStrokeAccuracy() {
+                if (currentPattern === 'free' || currentStrokePoints.length < 4 || currentTool === 'eraser') return;
+
+                let totalPointsScore = 0;
+                currentStrokePoints.forEach(p => {
+                    let minDistanceForPoint = Infinity;
+                    activeGuidedSegments.forEach(seg => {
+                        let dist = getDistanceToSegment(p, {x: seg.x1, y: seg.y1}, {x: seg.x2, y: seg.y2});
+                        if (dist < minDistanceForPoint) minDistanceForPoint = dist;
+                    });
+                    let pointAccuracy = Math.max(0, 100 - (minDistanceForPoint * 5));
+                    totalPointsScore += pointAccuracy;
+                });
+
+                let finalAccuracyPercentage = Math.round(totalPointsScore / currentStrokePoints.length);
+                scoreBoard.innerText = `Accuracy: ${finalAccuracyPercentage}%`;
+
+                if (finalAccuracyPercentage >= 85) {
+                    scoreBoard.style.background = '#10b981'; 
+                    sendVoiceCommand("Excellent! Perfect line!");
+                } else if (finalAccuracyPercentage >= 50) {
+                    scoreBoard.style.background = '#f59e0b'; 
+                    sendVoiceCommand("Good job! Keep practicing!");
+                } else {
+                    scoreBoard.style.background = '#ff4757'; 
+                    sendVoiceCommand("Nice try! Draw it on the dots!");
+                }
+            }
+
+            function getCoordinates(e) {
+                let rect = canvas.getBoundingClientRect();
+                let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                return { x: clientX - rect.left, y: clientY - rect.top };
+            }
+
+            function startDrawingAction(e) {
+                isDrawing = true;
+                currentStrokePoints = [];
+                let pos = getCoordinates(e);
+                lastX = pos.x; lastY = pos.y;
+                currentStrokePoints.push(pos);
+            }
+
+            function drawMovementAction(e) {
+                if (!isDrawing) return;
+                let pos = getCoordinates(e);
+                currentStrokePoints.push(pos);
+
+                ctx.beginPath();
+                ctx.moveTo(lastX, lastY);
+                ctx.lineTo(pos.x, pos.y);
+
+                if (currentTool === 'pencil') {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = 6;
+                } else if (currentTool === 'pen') {
+                    ctx.globalCompositeOperation = 'source-over';
+                    ctx.strokeStyle = currentColor;
+                    ctx.lineWidth = 14;
+                } else if (currentTool === 'eraser') {
+                    ctx.lineWidth = 40;
+                    ctx.globalCompositeOperation = 'destination-out';
+                }
+
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                ctx.stroke();
+
+                lastX = pos.x; lastY = pos.y;
+            }
+
+            function stopDrawingAction() { 
+                if(isDrawing) {
+                    isDrawing = false; 
+                    checkStrokeAccuracy(); 
+                }
+            }
+
+            window.setSlateColor = function(hexColor, element) {
+                currentColor = hexColor;
+                document.querySelectorAll('.color-dot').forEach(d => d.classList.remove('active'));
+                element.classList.add('active');
+                if(currentTool === 'eraser') window.setSlateTool('pencil');
+
+                if(hexColor === '#ef4444') sendVoiceCommand("Red");
+                else if(hexColor === '#10b981') sendVoiceCommand("Green");
+                else if(hexColor === '#f59e0b') sendVoiceCommand("Orange");
+                else if(hexColor === '#000000') sendVoiceCommand("Black");
+                else sendVoiceCommand("Blue");
+            };
+
+            window.setSlateTool = function(toolName) {
+                currentTool = toolName;
+                document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
+                if(document.getElementById('tool-' + toolName)) document.getElementById('tool-' + toolName).classList.add('active');
+
+                if(toolName === 'eraser') sendVoiceCommand("Eraser");
+                else if(toolName === 'pen') sendVoiceCommand("Sketch Pen");
+                else sendVoiceCommand("Pencil");
+            };
+
+            window.setSlatePattern = function(patternName, element) {
+                currentPattern = patternName;
+                document.querySelectorAll('.pattern-btn').forEach(b => b.classList.remove('active'));
+                element.classList.add('active');
+                
+                scoreBoard.innerText = "Accuracy: 0%";
+                scoreBoard.style.background = 'rgba(79, 70, 229, 0.95)';
+                drawPatternGuideBackground();
+
+                if(patternName === 'vertical') sendVoiceCommand("Let's draw standing lines");
+                else if(patternName === 'horizontal') sendVoiceCommand("Let's draw sleeping lines");
+                else if(patternName === 'slant') sendVoiceCommand("Let's draw slanting lines");
+                else sendVoiceCommand("Magic Slate");
+            };
+
+            window.clearEntireSlate = function() {
+                drawPatternGuideBackground();
+                scoreBoard.innerText = "Accuracy: 0%";
+                scoreBoard.style.background = 'rgba(79, 70, 229, 0.95)';
+                sendVoiceCommand("Clear slate");
+            };
+
+            canvas.addEventListener('mousedown', startDrawingAction);
+            canvas.addEventListener('mousemove', drawMovementAction);
+            canvas.addEventListener('mouseup', stopDrawingAction);
+            canvas.addEventListener('mouseleave', stopDrawingAction);
+
+            canvas.addEventListener('touchstart', startDrawingAction);
+            canvas.addEventListener('touchmove', drawMovementAction);
+            canvas.addEventListener('touchend', stopDrawingAction);
+
+            setTimeout(() => {
+                resizeCanvas();
+                window.addEventListener('resize', resizeCanvas);
+                sendVoiceCommand("Magic Slate");
+            }, 150);
+
+        })();
+    </script>
+</body>
+</html>
