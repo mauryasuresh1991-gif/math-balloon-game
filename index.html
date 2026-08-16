@@ -3,121 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>मैथ्स बलून एडिशन गेम</title>
+    <title>गेम हब</title>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background: linear-gradient(135deg, #74b9ff, #a29bfe); height: 100vh; overflow: hidden; display: flex; flex-direction: column; align-items: center; }
-        
-        /* Login/Profile Styles */
-        .card { background: white; padding: 30px; border-radius: 20px; margin-top: 100px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 90%; max-width: 400px; z-index: 2000; }
-        input { padding: 12px; width: 100%; margin: 10px 0; border-radius: 10px; border: 1px solid #ccc; font-size: 16px; }
-        .btn { padding: 12px 30px; cursor: pointer; background: #00b894; color: white; border: none; border-radius: 30px; font-size: 18px; margin-top: 10px; }
-
-        /* Game Styles */
-        .header { background: rgba(255, 255, 255, 0.9); width: 100%; padding: 15px; display: flex; justify-content: space-around; z-index: 10; font-weight: bold; }
-        .question-box { background: #fff; padding: 15px 30px; border-radius: 50px; font-size: 32px; font-weight: bold; color: #d63031; margin-top: 20px; border: 4px solid #fab1a0; }
-        .game-area { position: relative; width: 100%; flex-grow: 1; }
-        .balloon { position: absolute; bottom: -80px; width: 70px; height: 90px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; cursor: pointer; animation: floatUp linear forwards; }
-        @keyframes floatUp { to { bottom: 105vh; } }
-        
-        #gameContainer { display: none; width: 100%; height: 100%; flex-direction: column; }
+        body { background: linear-gradient(135deg, #74b9ff, #a29bfe); height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif; }
+        .card { background: white; padding: 30px; border-radius: 20px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.3); width: 90%; max-width: 400px; }
+        input { padding: 12px; width: 100%; margin: 10px 0; border-radius: 10px; border: 1px solid #ccc; }
+        .btn { padding: 12px 30px; cursor: pointer; background: #00b894; color: white; border: none; border-radius: 30px; font-size: 18px; margin: 10px 0; width: 100%; }
+        #menuSection { display: none; }
     </style>
 </head>
 <body>
 
-    <!-- 1. LOGIN SECTION -->
+    <!-- 1. लॉगिन सेक्शन -->
     <div id="loginSection" class="card">
-        <h2>मैथ्स गेम में स्वागत है!</h2>
+        <h2>स्वागत है!</h2>
         <input type="text" id="userName" placeholder="अपना नाम लिखें">
         <input type="number" id="userAge" placeholder="अपनी उम्र लिखें">
         <button class="btn" onclick="saveProfile()">शुरू करें</button>
     </div>
 
-    <!-- 2. PROFILE SECTION -->
-    <div id="profileSection" class="card" style="display:none;">
+    <!-- 2. मेनू सेक्शन -->
+    <div id="menuSection" class="card">
         <h2>नमस्ते, <span id="displayName"></span>!</h2>
-        <p>उम्र: <span id="displayAge"></span></p>
-        <p>सर्वोच्च स्कोर: <span id="bestScore">0</span></p>
-        <button class="btn" onclick="startFullGame()">गेम खेलें</button>
-    </div>
-
-    <!-- 3. GAME SECTION -->
-    <div id="gameContainer">
-        <div class="header">
-            <div>स्कोर: <span id="score">0</span></div>
-            <div>लेवल: <span id="level">1</span></div>
-        </div>
-        <div id="questionBox" class="question-box"></div>
-        <div id="gameArea" class="game-area"></div>
+        <p>अपना पसंदीदा गेम चुनें:</p>
+        
+        <button class="btn" onclick="window.location.href='addition.html'">एडिशन गेम (जोड़)</button>
+        <button class="btn" style="background-color: #e17055;" onclick="window.location.href='subtraction.html'">सब्सट्रैक्शन गेम (घटाव)</button>
+        
+        <button class="btn" style="background-color: #636e72;" onclick="logout()">लॉग आउट</button>
     </div>
 
     <script>
-        // प्रोफाइल और यूजर डेटा
         function saveProfile() {
             const name = document.getElementById('userName').value;
             const age = document.getElementById('userAge').value;
             if(name && age) {
                 localStorage.setItem('playerName', name);
                 localStorage.setItem('playerAge', age);
-                loadProfile();
-            } else { alert("कृपया अपना नाम और उम्र भरें!"); }
+                location.reload();
+            } else { alert("कृपया नाम और उम्र भरें!"); }
         }
 
-        function loadProfile() {
-            const name = localStorage.getItem('playerName');
-            if(name) {
+        function logout() {
+            localStorage.clear();
+            location.reload();
+        }
+
+        window.onload = function() {
+            if(localStorage.getItem('playerName')) {
                 document.getElementById('loginSection').style.display = 'none';
-                document.getElementById('profileSection').style.display = 'block';
-                document.getElementById('displayName').innerText = name;
-                document.getElementById('displayAge').innerText = localStorage.getItem('playerAge');
-                document.getElementById('bestScore').innerText = localStorage.getItem('score') || 0;
+                document.getElementById('menuSection').style.display = 'block';
+                document.getElementById('displayName').innerText = localStorage.getItem('playerName');
             }
-        }
-
-        // गेम लॉजिक
-        let score = 0, level = 1, currentAns;
-        function startFullGame() {
-            document.getElementById('profileSection').style.display = 'none';
-            document.getElementById('gameContainer').style.display = 'flex';
-            generateNewQuestion();
-        }
-
-        function generateNewQuestion() {
-            let min = level === 1 ? 1 : 10;
-            let max = level === 1 ? 9 : 99;
-            let n1 = Math.floor(Math.random() * (max - min + 1)) + min;
-            let n2 = Math.floor(Math.random() * (max - min + 1)) + min;
-            currentAns = n1 + n2;
-            document.getElementById('questionBox').innerText = `${n1} + ${n2} = ?`;
-            createBalloons();
-        }
-
-        function createBalloons() {
-            const area = document.getElementById('gameArea');
-            area.innerHTML = '';
-            let options = [currentAns, currentAns + 5, currentAns - 3];
-            options.sort(() => Math.random() - 0.5);
-            
-            options.forEach((ans, i) => {
-                let b = document.createElement('div');
-                b.className = 'balloon';
-                b.style.left = (20 + i*30) + '%';
-                b.style.backgroundColor = ['#e84118', '#0097e6', '#44bd32'][i];
-                b.style.animationDuration = (8 - level) + 's';
-                b.innerText = ans;
-                b.onclick = () => {
-                    if(ans == currentAns) {
-                        score += 10;
-                        document.getElementById('score').innerText = score;
-                        if(score > (localStorage.getItem('score') || 0)) localStorage.setItem('score', score);
-                        generateNewQuestion();
-                    } else { alert("गलत!"); }
-                };
-                area.appendChild(b);
-            });
-        }
-
-        window.onload = loadProfile;
+        };
     </script>
 </body>
 </html>
